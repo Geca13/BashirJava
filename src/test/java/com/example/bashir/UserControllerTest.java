@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
-import org.aspectj.lang.annotation.Before;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +20,8 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import com.example.bashir.shared.GenericResponse;
 import com.example.bashir.user.User;
 import com.example.bashir.user.UserRepository;
+
+
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -27,6 +29,7 @@ import com.example.bashir.user.UserRepository;
 public class UserControllerTest {
 	
 	private static final String API_1_0_USERS = "/api/1.0/users";
+	
 	@Autowired
 	TestRestTemplate testRestTemplate;
 	
@@ -72,7 +75,7 @@ public class UserControllerTest {
 		testRestTemplate.postForEntity(API_1_0_USERS, user, Object.class);
 		List<User> users = userRepository.findAll();
 		User inDb = users.get(0);
-		assertThat(inDb.getPassword()).isNotEqualTo(inDb.getPassword());
+		assertThat(inDb.getPassword()).isNotEqualTo(user.getPassword());
 		
 	}
 	
