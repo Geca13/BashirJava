@@ -3,6 +3,7 @@ package com.example.bashir;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,7 +27,6 @@ import com.example.bashir.user.UserRepository;
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
-
 public class UserControllerTest {
 	
 	private static final String API_1_0_USERS = "/api/1.0/users";
@@ -192,6 +192,55 @@ public class UserControllerTest {
 		ResponseEntity<ApiError> response = postSignup(user, ApiError.class);
 		assertThat(response.getBody().getValidationErrors().size()).isEqualTo(3);
 		}
+	
+	@Test
+	public void postUser_whenUserHasNullUsername_receiveErrorOfNullErrorUsername() {
+		User user = createValidUser();
+		user.setUsername(null);
+		ResponseEntity<ApiError> response = postSignup(user, ApiError.class);
+        Map<String, String> validationErrors = response.getBody().getValidationErrors();
+        assertThat(validationErrors.get("username")).isEqualTo("Username cannot be null");
+		
+	}
+	
+	@Test
+	public void postUser_whenUserHasNullPassword_receiveErrorOfNullErrorUsername() {
+		User user = createValidUser();
+		user.setPassword(null);
+		ResponseEntity<ApiError> response = postSignup(user, ApiError.class);
+        Map<String, String> validationErrors = response.getBody().getValidationErrors();
+        assertThat(validationErrors.get("password")).isEqualTo("Cannot be null");
+		
+	}
+	
+	@Test
+	public void postUser_whenUserHasInvalidUsernameLength_receiveGenericMessageOfSizeError() {
+		User user = createValidUser();
+		user.setUsername("abc");
+		ResponseEntity<ApiError> response = postSignup(user, ApiError.class);
+        Map<String, String> validationErrors = response.getBody().getValidationErrors();
+        assertThat(validationErrors.get("username")).isEqualTo("It must have minimum 4 and maximum 255 char");
+		
+	}
+	
+	@Test
+	public void postUser_whenUserHasInvalidPasswordPattern_receiveMessageOfPasswordPatternError() {
+		User user = createValidUser();
+		user.setPassword("alllowercase");
+		ResponseEntity<ApiError> response = postSignup(user, ApiError.class);
+        Map<String, String> validationErrors = response.getBody().getValidationErrors();
+        assertThat(validationErrors.get("password")).isEqualTo("Password must have at least one uppercase, one lowercase letter and one number");
+		
+	}
+	
+	@Test
+	public void postUser_whenAnotherUserHasTheSameUsername_receiveBadRequest() {
+		userRepository.save(createValidUser());
+		
+		User user = createValidUser();
+		ResponseEntity<Object> response = postSignup(user, Object.class);
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+	}
 	
 	public <T> ResponseEntity<T> postSignup(Object request , Class<T>response){
 		return testRestTemplate.postForEntity(API_1_0_USERS, request, response);
