@@ -2,6 +2,7 @@ package com.example.bashir;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +16,9 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.example.bashir.error.ApiError;
+import com.example.bashir.user.User;
+import com.example.bashir.user.UserRepository;
+import com.example.bashir.user.UserService;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
@@ -25,6 +29,18 @@ public class LoginControllerTest {
 	
 	@Autowired
 	TestRestTemplate testRestTemplate;
+	
+	@Autowired
+	UserRepository userRepository;
+	
+	@Autowired
+	UserService userService;
+	
+	@BeforeEach
+	public void cleanup() {
+		userRepository.deleteAll();
+		testRestTemplate.getRestTemplate().getInterceptors().clear();
+	}
 	
 	@Test
 	public void postLogin_withoutUserCredentials_receiveUnauthorized() {
@@ -42,6 +58,8 @@ public class LoginControllerTest {
 		
 	}
 	
+	
+	
 	@Test
 	public void postLogin_withoutUserCredentials_receiveApiError() {
 		
@@ -49,6 +67,7 @@ public class LoginControllerTest {
 		assertThat(response.getBody().getUrl()).isEqualTo(API_1_0_LOGIN);
 		
 	}
+	
 	
 	@Test
 	public void postLogin_withoutUserCredentials_receiveApiErrorWithoutValidationErrors() {
@@ -58,12 +77,26 @@ public class LoginControllerTest {
 		
 	}
 	
+	
 	@Test
 	public void postLogin_withIncorrectUserCredentials_receiveUnauthorizedWWWAuthHeader() {
 		authenticate();
 		ResponseEntity<Object> response = login(Object.class);
 		assertThat(response.getHeaders().containsKey("WWW-Authenticate")).isFalse();
 		
+	}
+	
+	@Test
+	public void postLogin_withValidCredentials_receiveOK() {
+		User user = new User();
+		user.setUsername("test-user");
+		user.setDisplayName("test-display");
+		user.setPassword("P4ssword");
+		userRepository.save(user);
+		authenticate();
+		ResponseEntity<Object> response = login(Object.class);
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+
 	}
 
 	private void authenticate() {

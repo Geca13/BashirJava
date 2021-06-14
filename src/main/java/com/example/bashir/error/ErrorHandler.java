@@ -19,20 +19,16 @@ public class ErrorHandler implements ErrorController {
 	
 	@RequestMapping("/error")
 	ApiError handleError(WebRequest webRequest) {
-		
 		Map<String, Object> attributes = errorAttributes.getErrorAttributes(webRequest, ErrorAttributeOptions.of(Include.MESSAGE));
 		
-		String message = (String ) attributes.get("message");
-		String url = (String ) attributes.get("path");
-		int status = (Integer ) attributes.get("status");
-		return new ApiError(status,message,url);
-		
+		String message = (String) attributes.get("message");
+		String url = (String) attributes.get("path");
+		int status = (Integer) attributes.get("status");
+		return new ApiError(status, message, url);
 	}
-	
+
 	public String getErrorPath() {
-		
 		return "/error";
-		
 	}
 
 }
