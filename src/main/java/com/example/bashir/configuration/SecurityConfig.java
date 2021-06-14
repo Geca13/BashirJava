@@ -5,6 +5,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 
+
 @EnableWebSecurity
 public class SecurityConfig  extends WebSecurityConfigurerAdapter {
 	
@@ -13,7 +14,7 @@ public class SecurityConfig  extends WebSecurityConfigurerAdapter {
 		
 		http.csrf().disable();
 		
-		http.httpBasic();
+		http.httpBasic().authenticationEntryPoint(new BasicAuthenticationEntryPoint());
 		
 		http.authorizeRequests()
 		.antMatchers(HttpMethod.POST,"/api/1.0/login").authenticated()
