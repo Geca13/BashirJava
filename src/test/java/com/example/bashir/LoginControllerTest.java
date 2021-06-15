@@ -2,6 +2,8 @@ package com.example.bashir;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Map;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -9,9 +11,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.support.BasicAuthenticationInterceptor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
@@ -35,6 +40,9 @@ public class LoginControllerTest {
 	
 	@Autowired
 	UserService userService;
+	
+	@Autowired
+	PasswordEncoder encoder;
 	
 	@BeforeEach
 	public void cleanup() {
@@ -88,14 +96,76 @@ public class LoginControllerTest {
 	
 	@Test
 	public void postLogin_withValidCredentials_receiveOK() {
-		User user = new User();
-		user.setUsername("test-user");
-		user.setDisplayName("test-display");
-		user.setPassword("P4ssword");
-		userRepository.save(user);
+		
+		userService.save(TestUtil.createValidUser());
 		authenticate();
 		ResponseEntity<Object> response = login(Object.class);
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+	}
+	
+	@Test
+	public void postLogin_withValidCredentials_receiveLogedInUserId() {
+		
+		User inDb = userService.save(TestUtil.createValidUser());
+		authenticate();
+		ResponseEntity<Map<String , Object>> response = login(new ParameterizedTypeReference <Map<String, Object>>(){});
+		Map<String, Object> body = response.getBody();
+		Integer id = (Integer) body.get("id");
+		
+		assertThat(id).isEqualTo(inDb.getId());
+
+	}
+	
+	@Test
+	public void postLogin_withValidCredentials_receiveLogedInUserImage() {
+		
+		User inDb = userService.save(TestUtil.createValidUser());
+		authenticate();
+		ResponseEntity<Map<String , Object>> response = login(new ParameterizedTypeReference <Map<String, Object>>(){});
+		Map<String, Object> body = response.getBody();
+		String image = (String) body.get("image");
+		
+		assertThat(image).isEqualTo(inDb.getImage());
+
+	}
+	
+	@Test
+	public void postLogin_withValidCredentials_receiveLogedInUserDispleyName() {
+		
+		User inDb = userService.save(TestUtil.createValidUser());
+		authenticate();
+		ResponseEntity<Map<String , Object>> response = login(new ParameterizedTypeReference <Map<String, Object>>(){});
+		Map<String, Object> body = response.getBody();
+		String displayName = (String) body.get("displayName");
+		
+		assertThat(displayName).isEqualTo(inDb.getDisplayName());
+
+	}
+	
+	@Test
+	public void postLogin_withValidCredentials_receiveLogedInUserUsername() {
+		
+		User inDb = userService.save(TestUtil.createValidUser());
+		authenticate();
+		ResponseEntity<Map<String , Object>> response = login(new ParameterizedTypeReference <Map<String, Object>>(){});
+		Map<String, Object> body = response.getBody();
+		String username = (String) body.get("username");
+		
+		assertThat(username).isEqualTo(inDb.getUsername());
+
+	}
+	
+	@Test
+	public void postLogin_withValidCredentials_notReceiveLogedInUserPassword() {
+		
+		userService.save(TestUtil.createValidUser());
+		authenticate();
+		ResponseEntity<Map<String , Object>> response = login(new ParameterizedTypeReference <Map<String, Object>>(){});
+		Map<String, Object> body = response.getBody();
+		
+		
+		assertThat(body.containsKey("password")).isFalse();
 
 	}
 
@@ -105,6 +175,11 @@ public class LoginControllerTest {
 	
 	public<T> ResponseEntity<T> login(Class<T> responseType) {
 		return testRestTemplate.postForEntity(API_1_0_LOGIN, null, responseType);
+		
+	}
+	
+	public<T> ResponseEntity<T> login(ParameterizedTypeReference<T> responseType) {
+		return testRestTemplate.exchange(API_1_0_LOGIN,HttpMethod.POST, null, responseType);
 		
 	}
 	
