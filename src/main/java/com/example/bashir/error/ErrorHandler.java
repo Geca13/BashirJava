@@ -27,6 +27,7 @@ public class ErrorHandler implements ErrorController {
 		return new ApiError(status, message, url);
 	}
 
+	
 	public String getErrorPath() {
 		return "/error";
 	}

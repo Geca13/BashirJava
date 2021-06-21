@@ -15,8 +15,7 @@ public @interface UniqueUsername {
 	
 	String message() default "{bashir.constraints.username.UniqueUsername.message}";
 	
-	Class<?> [] groups () default { };
-	
-	Class<? extends Payload > [] payload() default { };
+	Class<?>[] groups() default { };
+	Class<? extends Payload>[] payload() default { };
 
 }
