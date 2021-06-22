@@ -11,17 +11,17 @@ import org.springframework.web.bind.annotation.RestController;
 
 
 import com.example.bashir.shared.CurrentUser;
+import com.example.bashir.user.vm.UserVM;
 import com.fasterxml.jackson.annotation.JsonView;
 
 @RestController
 public class LoginController {
 	
 	@PostMapping("/api/1.0/login")
-	@JsonView(Views.Base.class)
-	User handleLogin(@CurrentUser User loggedInUser) {
+	UserVM handleLogin(@CurrentUser User loggedInUser) {
 		
 		
-		return loggedInUser;
+		return new UserVM(loggedInUser);
 	}
 	
 	

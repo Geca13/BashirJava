@@ -30,8 +30,8 @@ public class UserService {
 		
 	}
 
-	public Page<?> getUsers() {
-		Pageable pageable = PageRequest.of(0, 10);
+	public Page<User> getUsers(Pageable pageable) {
+		
 		return userRepository.findAll(pageable);
 	}
 	
