@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.bashir.error.ApiError;
+import com.example.bashir.shared.CurrentUser;
 import com.example.bashir.shared.GenericResponse;
 import com.example.bashir.user.vm.UserVM;
 import com.fasterxml.jackson.annotation.JsonView;
@@ -48,8 +49,8 @@ public class UserController {
 	
 	@GetMapping("/users")
 	
-	Page<UserVM> getUsers(Pageable page) {
-		return userService.getUsers(page).map(UserVM::new);
+	Page<UserVM> getUsers(@CurrentUser User loggedInUser, Pageable page) {
+		return userService.getUsers(loggedInUser,page).map(UserVM::new);
 		
 	}
 	
