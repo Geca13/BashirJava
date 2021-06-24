@@ -8,6 +8,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.example.bashir.error.NotFound;
+
 
 
 @Service
@@ -35,6 +37,17 @@ public class UserService {
 			return userRepository.findByUsernameNot(loggedInUser.getUsername(),pageable);
 		}
 		return userRepository.findAll(pageable);
+	}
+
+	public User getByUsername(String username) {
+		
+		User userInDb= userRepository.findByUsername(username);
+		if(userInDb == null) {
+			throw new NotFound(username + " not found");
+		}
+		
+		return userInDb;
+		
 	}
 	
 	
