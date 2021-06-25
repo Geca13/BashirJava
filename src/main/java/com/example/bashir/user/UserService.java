@@ -9,6 +9,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.example.bashir.error.NotFound;
+import com.example.bashir.user.vm.UserUpdateVM;
 
 
 
@@ -48,6 +49,13 @@ public class UserService {
 		
 		return userInDb;
 		
+	}
+
+	public User update(int id, UserUpdateVM userUpdate) {
+		
+		User inDb = userRepository.findById(id).get();
+		inDb.setDisplayName(userUpdate.getDisplayName());
+		return userRepository.save(inDb);
 	}
 	
 	

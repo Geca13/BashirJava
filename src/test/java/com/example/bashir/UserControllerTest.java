@@ -15,6 +15,7 @@ import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +28,8 @@ import com.example.bashir.shared.GenericResponse;
 import com.example.bashir.user.User;
 import com.example.bashir.user.UserRepository;
 import com.example.bashir.user.UserService;
+import com.example.bashir.user.vm.UserUpdateVM;
+import com.example.bashir.user.vm.UserVM;
 
 
 
@@ -363,6 +366,76 @@ public class UserControllerTest {
 		assertThat(response.getBody().getMessage().contains("unknown-use")).isTrue();
 	}
 	
+	@Test
+	public void putUser_whenAuthorizedUserSendsUpdateForOtherUser_receiveForbidden() {
+		
+		ResponseEntity<Object> response = putUser(123,  null, Object.class);
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+	}
+	
+	@Test
+	public void putUser_whenUserIsUnauthorized_receiveUnauthorized() {
+		User user =userService.save(TestUtil.createValidUser("user1"));
+		authenticate(user.getUsername());
+		int differentUser = user.getId()+123;
+		ResponseEntity<Object> response = putUser(differentUser,  null, Object.class);
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+	}
+	
+	@Test
+	public void putUser_whenAuthorizedUserSendsUpdateForOtherUser_receiveApiError() {
+		
+		ResponseEntity<ApiError> response = putUser(123,  null, ApiError.class);
+		assertThat(response.getBody().getUrl().contains("user/123"));
+	}
+	
+	@Test
+	public void putUser_whenValidRequestBodyFromAutherizedUser_receiveOk() {
+		User user =userService.save(TestUtil.createValidUser("user1"));
+		authenticate(user.getUsername());
+		UserUpdateVM updateVM = createValidUserUpdateVM();
+		HttpEntity<UserUpdateVM> requestEntity = new HttpEntity<>(updateVM);
+		ResponseEntity<Object> response = putUser(user.getId(),  requestEntity, Object.class);
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+	}
+	
+	@Test
+	public void putUser_whenValidRequestBodyFromAutherizedUser_displayNameUpdated() {
+		User user =userService.save(TestUtil.createValidUser("user1"));
+		authenticate(user.getUsername());
+		UserUpdateVM updateVM = createValidUserUpdateVM();
+		HttpEntity<UserUpdateVM> requestEntity = new HttpEntity<>(updateVM);
+		putUser(user.getId(),  requestEntity, Object.class);
+		User userInDb = userRepository.findByUsername("user1");
+		assertThat(userInDb.getDisplayName()).isEqualTo(updateVM.getDisplayName());
+	}
+	
+	@Test
+	public void putUser_whenValidRequestBodyFromAutherizedUser_receiveUserVmWithUpdatedDisplayName() {
+		User user =userService.save(TestUtil.createValidUser("user1"));
+		authenticate(user.getUsername());
+		UserUpdateVM updateVM = createValidUserUpdateVM();
+		HttpEntity<UserUpdateVM> requestEntity = new HttpEntity<>(updateVM);
+		ResponseEntity<UserVM> response = putUser(user.getId(),  requestEntity, UserVM.class);
+		
+		assertThat(response.getBody().getDisplayName()).isEqualTo(updateVM.getDisplayName());
+	}
+
+	private UserUpdateVM createValidUserUpdateVM() {
+		UserUpdateVM updateVM = new UserUpdateVM();
+		updateVM.setDisplayName("newDisplayName");
+		return updateVM;
+	}
+	
+	@Test
+	public void putUser_whenUserIsUnauthorized_receiveApiError() {
+		User user =userService.save(TestUtil.createValidUser("user1"));
+		authenticate(user.getUsername());
+		int differentUser = user.getId()+123;
+		ResponseEntity<ApiError> response = putUser(differentUser,  null, ApiError.class);
+		assertThat(response.getBody().getUrl().contains("users/"+differentUser));
+	}
+	
 	private void authenticate(String username) {
 		testRestTemplate.getRestTemplate().getInterceptors().add(new BasicAuthenticationInterceptor(username, "P4ssword"));
 	}
@@ -382,6 +455,11 @@ public class UserControllerTest {
 	public <T> ResponseEntity<T> getUser(String username, Class<T> responseType){
 		String path = API_1_0_USERS + "/"+username;
 		return testRestTemplate.getForEntity(path, responseType);
+	}
+	
+	public <T> ResponseEntity<T>putUser(long id,HttpEntity<?> requestEntity , Class<T> responseType){
+		String path = API_1_0_USERS + "/"+ id;
+		return testRestTemplate.exchange(path,HttpMethod.PUT, requestEntity, responseType);
 	}
 	
 	
