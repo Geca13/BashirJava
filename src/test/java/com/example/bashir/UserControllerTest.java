@@ -8,21 +8,17 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.data.domain.Page;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.support.BasicAuthenticationInterceptor;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-
 import com.example.bashir.error.ApiError;
 import com.example.bashir.shared.GenericResponse;
 import com.example.bashir.user.User;
@@ -53,7 +49,7 @@ public class UserControllerTest {
 		userRepository.deleteAll();
 		testRestTemplate.getRestTemplate().getInterceptors().clear();
 	}
-
+	
 	@Test
 	public void postUser_whenUserIsValid_receiveOk() {
 		User user = TestUtil.createValidUser();
@@ -68,6 +64,7 @@ public class UserControllerTest {
 		postSignup(user, Object.class);
 		assertThat(userRepository.count()).isEqualTo(1);
 	}
+	
 	
 	@Test
 	public void postUser_whenUserIsValid_receiveSuccessMessage() {
@@ -183,7 +180,7 @@ public class UserControllerTest {
 		ResponseEntity<Object> response = postSignup(user, Object.class);
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
 	}
-
+    
 	@Test
 	public void postUser_whenUserIsInvalid_receiveApiError() {
 		User user = new User();
@@ -222,8 +219,9 @@ public class UserControllerTest {
 		user.setUsername("abc");
 		ResponseEntity<ApiError> response = postSignup(user, ApiError.class);
 		Map<String, String> validationErrors = response.getBody().getValidationErrors();
-		assertThat(validationErrors.get("username")).isEqualTo("It must have minimum 4 and maximum 255 characters");
+		assertThat(validationErrors.get("username")).isEqualTo("It must have minimum 4 and maximum 255 char");
 	}
+	
 	
 	@Test
 	public void postUser_whenUserHasInvalidPasswordPattern_receiveMessageOfPasswordPatternError() {
@@ -250,7 +248,7 @@ public class UserControllerTest {
 		User user = TestUtil.createValidUser();
 		ResponseEntity<ApiError> response = postSignup(user, ApiError.class);
 		Map<String, String> validationErrors = response.getBody().getValidationErrors();
-		assertThat(validationErrors.get("username")).isEqualTo("This name is in use");
+		assertThat(validationErrors.get("username")).isEqualTo("This username is in use");
 	}
 	
 	@Test
@@ -362,9 +360,12 @@ public class UserControllerTest {
 	@Test
 	public void getUserByUsername_whenUserDoesNotExist_receiveApiError() {
 		
-		ResponseEntity<ApiError> response = getUser("Unknown-user", ApiError.class);
-		assertThat(response.getBody().getMessage().contains("unknown-use")).isTrue();
+		ResponseEntity<ApiError> response = getUser("unknown-user", ApiError.class);
+		assertThat(response.getBody().getMessage().contains("unknown-use"
+				+ "")).isTrue();
 	}
+	
+	
 	
 	@Test
 	public void putUser_whenAuthorizedUserSendsUpdateForOtherUser_receiveForbidden() {
@@ -421,11 +422,7 @@ public class UserControllerTest {
 		assertThat(response.getBody().getDisplayName()).isEqualTo(updateVM.getDisplayName());
 	}
 
-	private UserUpdateVM createValidUserUpdateVM() {
-		UserUpdateVM updateVM = new UserUpdateVM();
-		updateVM.setDisplayName("newDisplayName");
-		return updateVM;
-	}
+	
 	
 	@Test
 	public void putUser_whenUserIsUnauthorized_receiveApiError() {
@@ -436,33 +433,37 @@ public class UserControllerTest {
 		assertThat(response.getBody().getUrl().contains("users/"+differentUser));
 	}
 	
+	
+	private UserUpdateVM createValidUserUpdateVM() {
+		UserUpdateVM updateVM = new UserUpdateVM();
+		updateVM.setDisplayName("newDisplayName");
+		return updateVM;
+	}
 	private void authenticate(String username) {
 		testRestTemplate.getRestTemplate().getInterceptors().add(new BasicAuthenticationInterceptor(username, "P4ssword"));
 	}
 	
-	public <T> ResponseEntity<T> postSignup(Object request , Class<T>response){
+	public <T> ResponseEntity<T> postSignup(Object request, Class<T> response){
 		return testRestTemplate.postForEntity(API_1_0_USERS, request, response);
 	}
 	
-	public <T> ResponseEntity<T> getUsers(ParameterizedTypeReference<T>responseType){
-		return testRestTemplate.exchange(API_1_0_USERS,HttpMethod.GET, null ,responseType);
+	public <T> ResponseEntity<T> getUsers(ParameterizedTypeReference<T> responseType){
+		return testRestTemplate.exchange(API_1_0_USERS, HttpMethod.GET, null, responseType);
 	}
 	
-	public <T> ResponseEntity<T> getUsers(String path ,ParameterizedTypeReference<T>responseType){
-		return testRestTemplate.exchange(path,HttpMethod.GET, null ,responseType);
+	public <T> ResponseEntity<T> getUsers(String path, ParameterizedTypeReference<T> responseType){
+		return testRestTemplate.exchange(path, HttpMethod.GET, null, responseType);
 	}
 	
 	public <T> ResponseEntity<T> getUser(String username, Class<T> responseType){
-		String path = API_1_0_USERS + "/"+username;
+		String path = API_1_0_USERS + "/" + username;
 		return testRestTemplate.getForEntity(path, responseType);
 	}
 	
-	public <T> ResponseEntity<T>putUser(long id,HttpEntity<?> requestEntity , Class<T> responseType){
-		String path = API_1_0_USERS + "/"+ id;
-		return testRestTemplate.exchange(path,HttpMethod.PUT, requestEntity, responseType);
+	public <T> ResponseEntity<T> putUser(long id, HttpEntity<?> requestEntity, Class<T> responseType){
+		String path = API_1_0_USERS + "/" + id;
+		return testRestTemplate.exchange(path, HttpMethod.PUT, requestEntity, responseType);
 	}
-	
-	
 	
 	
 	
