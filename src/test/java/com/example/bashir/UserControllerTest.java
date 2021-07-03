@@ -2,10 +2,14 @@ package com.example.bashir;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.IOException;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +17,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -431,6 +436,25 @@ public class UserControllerTest {
 		int differentUser = user.getId()+123;
 		ResponseEntity<ApiError> response = putUser(differentUser,  null, ApiError.class);
 		assertThat(response.getBody().getUrl().contains("users/"+differentUser));
+	}
+	
+	@Test
+	public void putUser_whenValidRequestBodyWithSupportedImageFromAutherizedUser_receiveUserVmWithRandomImageName() throws IOException {
+		User user =userService.save(TestUtil.createValidUser("user1"));
+		authenticate(user.getUsername());
+		
+		ClassPathResource imageResource = new ClassPathResource("profile.png");
+		
+		byte[] imageArr = FileUtils.readFileToByteArray(imageResource.getFile());
+		String imageString = Base64.getEncoder().encodeToString(imageArr);
+		
+		UserUpdateVM updateVM = createValidUserUpdateVM();
+		updateVM.setImage(imageString);
+		
+		HttpEntity<UserUpdateVM> requestEntity = new HttpEntity<>(updateVM);
+		ResponseEntity<UserVM> response = putUser(user.getId(),  requestEntity, UserVM.class);
+		
+		assertThat(response.getBody().getImage()).isNotEqualTo("profile-image.png");
 	}
 	
 	

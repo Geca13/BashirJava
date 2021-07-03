@@ -1,6 +1,8 @@
 package com.example.bashir.user;
 
 
+import java.util.UUID;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -55,6 +57,8 @@ public class UserService {
 		
 		User inDb = userRepository.findById(id).get();
 		inDb.setDisplayName(userUpdate.getDisplayName());
+		String savedImageName = inDb.getUsername() + UUID.randomUUID().toString().replaceAll("-", "");
+		inDb.setImage(savedImageName);
 		return userRepository.save(inDb);
 	}
 	
