@@ -31,9 +31,7 @@ public class BashirApplication {
 					user.setPassword("P4ssword");
 					return user;
 				}).forEach(service:: save);
-			
-			
-		};
+			};
 		
 	}
 
