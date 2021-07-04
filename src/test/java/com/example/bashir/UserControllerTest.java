@@ -449,10 +449,9 @@ public class UserControllerTest {
 	public void putUser_whenValidRequestBodyWithSupportedImageFromAutherizedUser_receiveUserVmWithRandomImageName() throws IOException {
 		User user =userService.save(TestUtil.createValidUser("user1"));
 		authenticate(user.getUsername());
+		UserUpdateVM updateVM = createValidUserUpdateVM();
 		
 		String imageString = readFileToBase64("profile.png");
-		
-		UserUpdateVM updateVM = createValidUserUpdateVM();
 		updateVM.setImage(imageString);
 		
 		HttpEntity<UserUpdateVM> requestEntity = new HttpEntity<>(updateVM);
@@ -465,10 +464,9 @@ public class UserControllerTest {
 	public void putUser_whenValidRequestBodyWithSupportedImageFromAutherizedUser_imageIsStoredUnderProfileFolder() throws IOException {
 		User user =userService.save(TestUtil.createValidUser("user1"));
 		authenticate(user.getUsername());
+		UserUpdateVM updateVM = createValidUserUpdateVM();
 		
 		String imageString = readFileToBase64("profile.png");
-		
-		UserUpdateVM updateVM = createValidUserUpdateVM();
 		updateVM.setImage(imageString);
 		
 		HttpEntity<UserUpdateVM> requestEntity = new HttpEntity<>(updateVM);
@@ -482,6 +480,112 @@ public class UserControllerTest {
 		
 		assertThat(storedImage.exists()).isTrue();
 	}
+	
+	@Test
+	public void putUser_withInvalidRequestBodyWithNullDisplayNameFromAuthorizedUser_receiveBadRequest() throws IOException {
+		User user = userService.save(TestUtil.createValidUser("user1"));
+		authenticate(user.getUsername());
+		UserUpdateVM updatedUser = new UserUpdateVM();
+		updatedUser.setDisplayName(null);
+		HttpEntity<UserUpdateVM> requestEntity = new HttpEntity<>(updatedUser);
+		ResponseEntity<Object> response = putUser(user.getId(), requestEntity, Object.class);
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+	}
+	
+	@Test
+	public void putUser_withInvalidRequestBodyWithLessThanMinSizeDisplayNameFromAuthorizedUser_receiveBadRequest() throws IOException {
+		User user = userService.save(TestUtil.createValidUser("user1"));
+		authenticate(user.getUsername());
+		UserUpdateVM updatedUser = new UserUpdateVM();
+		updatedUser.setDisplayName("abc");
+		
+		HttpEntity<UserUpdateVM> requestEntity = new HttpEntity<>(updatedUser);
+		ResponseEntity<Object> response = putUser(user.getId(), requestEntity, Object.class);
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+	}
+
+	@Test
+	public void putUser_withInvalidRequestBodyWithMoreThanMaxSizeDisplayNameFromAuthorizedUser_receiveBadRequest() throws IOException {
+		User user = userService.save(TestUtil.createValidUser("user1"));
+		authenticate(user.getUsername());
+		UserUpdateVM updatedUser = new UserUpdateVM();
+
+		String valueOf256Chars = IntStream.rangeClosed(1,256).mapToObj(x -> "a").collect(Collectors.joining());
+		updatedUser.setDisplayName(valueOf256Chars);
+		
+		HttpEntity<UserUpdateVM> requestEntity = new HttpEntity<>(updatedUser);
+		ResponseEntity<Object> response = putUser(user.getId(), requestEntity, Object.class);
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+	}
+	
+	@Test
+	public void putUser_whenValidRequestBodyWithJPGImageFromAutherizedUser_receiveOk() throws IOException {
+		User user =userService.save(TestUtil.createValidUser("user1"));
+		authenticate(user.getUsername());
+		UserUpdateVM updateVM = createValidUserUpdateVM();
+		
+		String imageString = readFileToBase64("test-jpg.jpg");
+		updateVM.setImage(imageString);
+		
+		HttpEntity<UserUpdateVM> requestEntity = new HttpEntity<>(updateVM);
+		ResponseEntity<UserVM> response = putUser(user.getId(),  requestEntity, UserVM.class);
+		
+	    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+	}
+	
+	@Test
+	public void putUser_whenValidRequestBodyWithGIFImageFromAutherizedUser_receiveBadRequest() throws IOException {
+		User user =userService.save(TestUtil.createValidUser("user1"));
+		authenticate(user.getUsername());
+		UserUpdateVM updateVM = createValidUserUpdateVM();
+		
+		String imageString = readFileToBase64("test-gif.gif");
+		updateVM.setImage(imageString);
+		
+		HttpEntity<UserUpdateVM> requestEntity = new HttpEntity<>(updateVM);
+		ResponseEntity<Object> response = putUser(user.getId(),  requestEntity, Object.class);
+		
+	    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+	}
+	
+	@Test
+	public void putUser_whenValidRequestBodyWithTXTImageFromAutherizedUser_receiveVlidationErrorForProfileImage() throws IOException {
+		User user =userService.save(TestUtil.createValidUser("user1"));
+		authenticate(user.getUsername());
+		UserUpdateVM updateVM = createValidUserUpdateVM();
+		
+		String imageString = readFileToBase64("test-txt.txt");
+		updateVM.setImage(imageString);
+		
+		HttpEntity<UserUpdateVM> requestEntity = new HttpEntity<>(updateVM);
+		ResponseEntity<ApiError> response = putUser(user.getId(),  requestEntity, ApiError.class);
+		Map<String , String> validationError = response.getBody().getValidationErrors();
+		
+	    assertThat(validationError.get("image")).isEqualTo("Only PNG and JPG files are allowed");
+	
+	}
+	
+	@Test
+	public void putUser_whenValidRequestBodyWithJPGImageForUserWhoHasImage_removesOldImageFromStorage() throws IOException {
+		User user =userService.save(TestUtil.createValidUser("user1"));
+		authenticate(user.getUsername());
+		UserUpdateVM updateVM = createValidUserUpdateVM();
+		
+		String imageString = readFileToBase64("test-jpg.jpg");
+		updateVM.setImage(imageString);
+		
+		HttpEntity<UserUpdateVM> requestEntity = new HttpEntity<>(updateVM);
+		ResponseEntity<UserVM> response = putUser(user.getId(),  requestEntity, UserVM.class);
+		
+		putUser(user.getId(),  requestEntity, UserVM.class);
+		
+		String storedImageName = response.getBody().getImage();
+		String profilePicturePath = appConfiguration.getFullProfileImagesPath() + "/" + storedImageName;
+		File storedImage = new File(profilePicturePath);
+		
+	    assertThat(storedImage.exists()).isFalse();
+	}
+	
 	
 	private String readFileToBase64(String fileName) throws IOException {
 		
