@@ -1,5 +1,6 @@
 package com.example.bashir;
 
+import com.example.bashir.hoax.Hoax;
 import com.example.bashir.user.User;
 
 public class TestUtil {
@@ -18,6 +19,12 @@ public class TestUtil {
 		user.setUsername(username);
 		
 		return user;
+	}
+	
+	public static Hoax createValidHoax() {
+		Hoax hoax = new Hoax();
+		hoax.setContent("test content");
+		return hoax;
 	}
 
 }
