@@ -57,7 +57,7 @@ public class UserService {
 		
 	}
 
-	public User update(int id, UserUpdateVM userUpdate) {
+	public User update(Integer id, UserUpdateVM userUpdate) {
 		
 		User inDb = userRepository.findById(id).get();
 		inDb.setDisplayName(userUpdate.getDisplayName());

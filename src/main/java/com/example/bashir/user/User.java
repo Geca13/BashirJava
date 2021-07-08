@@ -2,11 +2,14 @@ package com.example.bashir.user;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 
 import javax.persistence.Id;
+import javax.persistence.OneToMany;
 import javax.persistence.Transient;
 
 import javax.validation.constraints.NotNull;
@@ -17,6 +20,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import com.example.bashir.hoax.Hoax;
 
 import lombok.Data;
 
@@ -52,6 +56,9 @@ public class User implements UserDetails {
 	
 	
 	private String image;
+	
+	@OneToMany(mappedBy = "user")
+	private List<Hoax> hoaxes;
 	
 	
 
