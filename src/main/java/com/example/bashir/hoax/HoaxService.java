@@ -42,4 +42,8 @@ public class HoaxService {
 		
 		
 	}
+
+	public Page<Hoax> getOldHoaxes(Integer id, Pageable pageable) {
+		return hoaxRepository.findByIdLessThan(id, pageable);
+	}
 }

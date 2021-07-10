@@ -288,14 +288,42 @@ public class HoaxControllerTest {
 		IntStream.rangeClosed(1, 5).forEach(i ->{
 			hoaxService.saveHoax(userWith5Hoaxes, TestUtil.createValidHoax());
 		});
-		
-		
 		ResponseEntity<TestPage<HoaxVm>> response = getHoaxesOfUser(userWith5Hoaxes.getUsername(),new ParameterizedTypeReference<TestPage<HoaxVm>>() {}) ;
 		
 		assertThat(response.getBody().getTotalElements()).isEqualTo(5);
 	}
 	
+	@Test
+	public void getOldHoaxes_whenThereAreNoHoaxes_receiveOk() {
+		ResponseEntity<Object> response = getOldHoaxes(5, new ParameterizedTypeReference<Object>() {});
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+	}
 	
+	@Test
+	public void getOldHoaxes_whenThereAreHoaxes_receivePageWithItemsProvidedId() {
+		User user = userService.save(TestUtil.createValidUser("user1"));
+		hoaxService.saveHoax(user ,TestUtil.createValidHoax());
+		hoaxService.saveHoax(user ,TestUtil.createValidHoax());
+		hoaxService.saveHoax(user ,TestUtil.createValidHoax());
+		Hoax fourth = hoaxService.saveHoax(user , TestUtil.createValidHoax());
+		hoaxService.saveHoax(user ,TestUtil.createValidHoax());
+		
+		ResponseEntity<TestPage<Hoax>> response = getOldHoaxes(fourth.getId(), new ParameterizedTypeReference<TestPage<Hoax>>() {});
+		assertThat(response.getBody().getTotalElements()).isEqualTo(3);
+	}
+	
+	@Test
+	public void getOldHoaxes_whenThereAreHoaxes_receivePageWithHoaxVmBeforeProvidedId() {
+		User user = userService.save(TestUtil.createValidUser());
+		hoaxService.saveHoax(user ,TestUtil.createValidHoax());
+		hoaxService.saveHoax(user ,TestUtil.createValidHoax());
+		hoaxService.saveHoax(user ,TestUtil.createValidHoax());
+		Hoax fourth = hoaxService.saveHoax(user , TestUtil.createValidHoax());
+		hoaxService.saveHoax(user ,TestUtil.createValidHoax());
+		
+		ResponseEntity<TestPage<HoaxVm>> response = getOldHoaxes(fourth.getId(), new ParameterizedTypeReference<TestPage<HoaxVm>>() {});
+		assertThat(response.getBody().getContent().get(0).getDate()).isGreaterThan(0);
+	}
 	
 	
 	
@@ -307,13 +335,16 @@ public class HoaxControllerTest {
 	
 	public <T> ResponseEntity<T> getHoaxes(	ParameterizedTypeReference<T> responseType){
 		return testRestTemplate.exchange(API_1_0_HOAXES, HttpMethod.GET, null, responseType);
-
-	}
+    }
 	
 	public <T> ResponseEntity<T> getHoaxesOfUser( String username,ParameterizedTypeReference<T> responseType){
 		String path = "/api/1.0/users/" + username + "/hoaxes";
 		return testRestTemplate.exchange(path, HttpMethod.GET, null, responseType);
-
+    }
+	
+	public <T> ResponseEntity<T> getOldHoaxes(Integer hoaxId, ParameterizedTypeReference<T> responseType){
+		String path = API_1_0_HOAXES + "/" + hoaxId + "?direction=before&page=0&size=5&sort=id,desc";
+		return testRestTemplate.exchange(path, HttpMethod.GET, null, responseType);
 	}
 }
 
