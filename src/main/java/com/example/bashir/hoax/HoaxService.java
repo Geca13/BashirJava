@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.example.bashir.user.User;
+import com.example.bashir.user.UserRepository;
 import com.example.bashir.user.UserService;
 
 
@@ -45,5 +46,10 @@ public class HoaxService {
 
 	public Page<Hoax> getOldHoaxes(Integer id, Pageable pageable) {
 		return hoaxRepository.findByIdLessThan(id, pageable);
+	}
+
+	public Page<Hoax> getOldHoaxesOfUser(Integer id, String username, Pageable pageable) {
+		User inDb = userService.getByUsername(username);
+		return hoaxRepository.findByIdLessThanAndUser(id, inDb, pageable);
 	}
 }
