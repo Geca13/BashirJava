@@ -8,11 +8,13 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.ManyToOne;
+import javax.persistence.OneToOne;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
+import com.example.bashir.file.FileAttachment;
 import com.example.bashir.user.User;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -36,6 +38,9 @@ public class Hoax {
 	
 	@ManyToOne
 	private User user;
+	
+	@OneToOne(mappedBy = "hoax")
+	private FileAttachment attachment;
 
 	
 		
