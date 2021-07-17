@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import com.example.bashir.file.FileAttachment;
 import com.example.bashir.file.FileAttachmentRepository;
+import com.example.bashir.file.FileService;
 import com.example.bashir.user.User;
 import com.example.bashir.user.UserRepository;
 import com.example.bashir.user.UserService;
@@ -30,12 +31,15 @@ public class HoaxService {
 	UserService userService;
 	
 	FileAttachmentRepository fileAttachmentRepository;
+	
+	FileService fileService;
 
-	public HoaxService(HoaxRepository hoaxRepository, UserService userService,FileAttachmentRepository fileAttachmentRepository) {
+	public HoaxService(HoaxRepository hoaxRepository, UserService userService,FileAttachmentRepository fileAttachmentRepository, FileService fileService) {
 		super();
 		this.hoaxRepository = hoaxRepository;
 		this.userService = userService;
 		this.fileAttachmentRepository = fileAttachmentRepository;
+		this.fileService = fileService;
 	}
 	
 	public Hoax saveHoax( User user, Hoax hoax) {
@@ -119,6 +123,15 @@ public class HoaxService {
 		return (root, query, criteriaBuilder)->{
 			return criteriaBuilder.greaterThan(root.get("id"), id);
 		};
+	}
+
+	public void deleteHoax(Integer id) {
+		Hoax hoax = hoaxRepository.findById(id).get();
+		if(hoax.getAttachment() != null) {
+			fileService.deleteAttachmentImage(hoax.getAttachment().getName());
+		}
+		hoaxRepository.deleteById(id);
+		
 	}
 }
 

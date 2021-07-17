@@ -1,12 +1,15 @@
 package com.example.bashir;
 
-
+import com.example.bashir.configuration.AppConfiguration;
+import com.example.bashir.file.FileAttachment;
+import com.example.bashir.file.FileAttachmentRepository;
+import com.example.bashir.file.FileService;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.IOException;
-import java.sql.Date;
+import java.util.Date;
 import java.util.Arrays;
 
 import org.apache.commons.io.FileUtils;
@@ -20,10 +23,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.example.bashir.configuration.AppConfiguration;
-import com.example.bashir.file.FileAttachment;
-import com.example.bashir.file.FileAttachmentRepository;
-import com.example.bashir.file.FileService;
+
 
 @ExtendWith(SpringExtension.class)
 @ActiveProfiles("test")
@@ -40,7 +40,6 @@ public class FileServiceTest {
 	
 	@BeforeEach
 	public void init() {
-		
 		appConfiguration = new AppConfiguration();
 		appConfiguration.setUploadPath("uploads-test");
 		
@@ -49,13 +48,12 @@ public class FileServiceTest {
 		new File(appConfiguration.getUploadPath()).mkdir();
 		new File(appConfiguration.getFullProfileImagesPath()).mkdir();
 		new File(appConfiguration.getFullAttachmentsPath()).mkdir();
-		
 	}
 	
 	@Test
 	public void detectType_whenPngFileProvided_returnsImagePng() throws IOException {
-		ClassPathResource resourseFile = new ClassPathResource("test-png.png");
-		byte[] fileArr = FileUtils.readFileToByteArray(resourseFile.getFile());
+		ClassPathResource resourceFile = new ClassPathResource("test-png.png");
+		byte[] fileArr = FileUtils.readFileToByteArray(resourceFile.getFile());
 		String fileType = fileService.detectType(fileArr);
 		assertThat(fileType).isEqualToIgnoringCase("image/png");
 	}
@@ -98,13 +96,12 @@ public class FileServiceTest {
 		fileService.cleanupStorage();
 		Mockito.verify(fileAttachmentRepository).deleteById(5);
 	}
-
 	
 	@AfterEach
 	public void cleanup() throws IOException {
 		FileUtils.cleanDirectory(new File(appConfiguration.getFullProfileImagesPath()));
 		FileUtils.cleanDirectory(new File(appConfiguration.getFullAttachmentsPath()));
+		
 	}
-	
 
 }

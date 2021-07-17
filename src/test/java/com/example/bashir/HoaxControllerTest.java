@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -40,6 +41,7 @@ import com.example.bashir.hoax.Hoax;
 import com.example.bashir.hoax.HoaxRepository;
 import com.example.bashir.hoax.HoaxService;
 import com.example.bashir.hoax.HoaxVm;
+import com.example.bashir.shared.GenericResponse;
 import com.example.bashir.user.User;
 import com.example.bashir.user.UserRepository;
 import com.example.bashir.user.UserService;
@@ -562,6 +564,108 @@ public class HoaxControllerTest {
 		
 		assertThat(response.getBody().getAttachment().getName()).isEqualTo(savedFile.getName());
 	}
+	
+	@Test
+	public void deleteHoax_whenUserIsUnauthorized_receiveUnauothorized() {
+		ResponseEntity<Object> response = deleteHoax(555, Object.class);
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+	}
+	
+	@Test
+	public void deleteHoax_whenUserIsAuthorized_receiveOk() {
+		User user = userService.save(TestUtil.createValidUser("user1"));
+		authenticate("user1");
+		Hoax hoax = hoaxService.saveHoax(user ,TestUtil.createValidHoax());
+		ResponseEntity<Object> response = deleteHoax(hoax.getId(), Object.class);
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+	}
+	
+	@Test
+	public void deleteHoax_whenUserIsAuthorized_receiveGenericResponse() {
+		User user = userService.save(TestUtil.createValidUser("user1"));
+		authenticate("user1");
+		Hoax hoax = hoaxService.saveHoax(user ,TestUtil.createValidHoax());
+		ResponseEntity<GenericResponse> response = deleteHoax(hoax.getId(), GenericResponse.class);
+		assertThat(response.getBody().getMessage()).isNotNull();
+	}
+	
+	@Test
+	public void deleteHoax_whenHoaxIsOwnedByAnotherUser_receiveForbiden() {
+		userService.save(TestUtil.createValidUser("user1"));
+		authenticate("user1");
+		User user2 = userService.save(TestUtil.createValidUser("user2"));
+		authenticate("user2");
+		Hoax hoax = hoaxService.saveHoax(user2 ,TestUtil.createValidHoax());
+		ResponseEntity<Object> response = deleteHoax(hoax.getId(), Object.class);
+		
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+	}
+	
+	@Test
+	public void deleteHoax_whenUserIsAuthorized_hoaxRemovedFromDatabase() {
+		User user = userService.save(TestUtil.createValidUser("user1"));
+		authenticate("user1");
+		Hoax hoax = hoaxService.saveHoax(user ,TestUtil.createValidHoax());
+		deleteHoax(hoax.getId(), Object.class);
+		Optional<Hoax> inDb = hoaxRepository.findById(hoax.getId());
+		assertThat(inDb.isPresent()).isFalse();
+	}
+	
+	@Test
+	public void deleteHoax_whenHoaxNotExist_receiveForbiden() {
+		userService.save(TestUtil.createValidUser("user1"));
+		authenticate("user1");
+		
+		ResponseEntity<Object> response = deleteHoax(5555, Object.class);
+		
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+	}
+	
+	@Test
+	public void deleteHoax_whenHoaxHasAttachment_attachmentIsRemovedFromDatabase() throws IOException {
+		userService.save(TestUtil.createValidUser("user1"));
+		authenticate("user1");
+		
+		MultipartFile file = createFile();
+		
+		FileAttachment savedFile = fileService.saveAttachment(file);
+		
+		Hoax hoax = TestUtil.createValidHoax();
+		hoax.setAttachment(savedFile);
+		ResponseEntity<HoaxVm> response = postHoax(hoax, HoaxVm.class);
+		
+		Integer hoaxId = response.getBody().getId();
+		
+		deleteHoax(hoaxId, Object.class);
+		
+		Optional<FileAttachment> attachment = fileAttachmentRepository.findById(savedFile.getId());
+		
+		assertThat(attachment.isPresent()).isFalse();
+	}
+	
+	@Test
+	public void deleteHoax_whenHoaxHasAttachment_attachmentIsRemovedFromStorage() throws IOException {
+		userService.save(TestUtil.createValidUser("user1"));
+		authenticate("user1");
+		
+		MultipartFile file = createFile();
+		
+		FileAttachment savedFile = fileService.saveAttachment(file);
+		
+		Hoax hoax = TestUtil.createValidHoax();
+		hoax.setAttachment(savedFile);
+		ResponseEntity<HoaxVm> response = postHoax(hoax, HoaxVm.class);
+		
+		Integer hoaxId = response.getBody().getId();
+		
+		deleteHoax(hoaxId, Object.class);
+		String attachmentPath = appConfiguration.getFullAttachmentsPath() + "/" + savedFile.getName();
+		
+		File storedImage = new File(attachmentPath);
+		
+		assertThat(storedImage.exists()).isFalse();
+	}
+
 
 	private MultipartFile createFile() throws IOException {
 		ClassPathResource imageResource = new ClassPathResource("profile.png");
@@ -571,49 +675,52 @@ public class HoaxControllerTest {
 		return file;
 	}
 	
-	public <T> ResponseEntity<T> postHoax(Hoax hoax, Class<T> responseType){
-		
-		return testRestTemplate.postForEntity(API_1_0_HOAXES, hoax, responseType);
-
-	}
-	
-	public <T> ResponseEntity<T> getHoaxes(	ParameterizedTypeReference<T> responseType){
-		return testRestTemplate.exchange(API_1_0_HOAXES, HttpMethod.GET, null, responseType);
-    }
-	
-	public <T> ResponseEntity<T> getHoaxesOfUser( String username,ParameterizedTypeReference<T> responseType){
-		String path = "/api/1.0/users/" + username + "/hoaxes";
-		return testRestTemplate.exchange(path, HttpMethod.GET, null, responseType);
-    }
-	
-	public <T> ResponseEntity<T> getOldHoaxes(Integer hoaxId, ParameterizedTypeReference<T> responseType){
-		String path = API_1_0_HOAXES + "/" + hoaxId + "?direction=before&page=0&size=5&sort=id,desc";
-		return testRestTemplate.exchange(path, HttpMethod.GET, null, responseType);
-	}
-	
-	public <T> ResponseEntity<T> getOldHoaxesOfUser(Integer hoaxId,String username, ParameterizedTypeReference<T> responseType){
-		String path = "/api/1.0/users/" + username + "/hoaxes/" + hoaxId + "?direction=before&page=0&size=5&sort=id,desc";
-		return testRestTemplate.exchange(path, HttpMethod.GET, null, responseType);
-	}
-	
-	public <T> ResponseEntity<T> getNewHoaxes(Integer hoaxId, ParameterizedTypeReference<T> responseType){
-		String path = API_1_0_HOAXES + "/" + hoaxId + "?direction=after&sort=id,desc";
-		return testRestTemplate.exchange(path, HttpMethod.GET, null, responseType);
-	}
-	
-	public <T> ResponseEntity<T> getNewHoaxesOfUser(Integer hoaxId,String username, ParameterizedTypeReference<T> responseType){
-		String path = "/api/1.0/users/" + username + "/hoaxes/" + hoaxId + "?direction=after&sort=id,desc";
-		return testRestTemplate.exchange(path, HttpMethod.GET, null, responseType);
+	public <T> ResponseEntity<T> deleteHoax(Integer hoaxId, Class<T> responseType){
+		return testRestTemplate.exchange(API_1_0_HOAXES + "/" + hoaxId, HttpMethod.DELETE, null, responseType);
 	}
 	
 	public <T> ResponseEntity<T> getNewHoaxCount(Integer hoaxId, ParameterizedTypeReference<T> responseType){
-		String path = API_1_0_HOAXES + "/" + hoaxId + "?direction=after&count=true";
+		String path = API_1_0_HOAXES + "/" + hoaxId +"?direction=after&count=true";
+		return testRestTemplate.exchange(path, HttpMethod.GET, null, responseType);
+	}
+
+	public <T> ResponseEntity<T> getNewHoaxCountOfUser(Integer hoaxId, String username, ParameterizedTypeReference<T> responseType){
+		String path = "/api/1.0/users/" + username + "/hoaxes/" + hoaxId +"?direction=after&count=true";
+		return testRestTemplate.exchange(path, HttpMethod.GET, null, responseType);
+	}
+
+	
+	public <T> ResponseEntity<T> getNewHoaxes(Integer hoaxId, ParameterizedTypeReference<T> responseType){
+		String path = API_1_0_HOAXES + "/" + hoaxId +"?direction=after&sort=id,desc";
+		return testRestTemplate.exchange(path, HttpMethod.GET, null, responseType);
+	}
+
+	public <T> ResponseEntity<T> getNewHoaxesOfUser(Integer hoaxId, String username, ParameterizedTypeReference<T> responseType){
+		String path = "/api/1.0/users/" + username + "/hoaxes/" + hoaxId +"?direction=after&sort=id,desc";
 		return testRestTemplate.exchange(path, HttpMethod.GET, null, responseType);
 	}
 	
-	public <T> ResponseEntity<T> getNewHoaxCountOfUser(Integer hoaxId,String username, ParameterizedTypeReference<T> responseType){
-		String path = "/api/1.0/users/" + username + "/hoaxes/" + hoaxId +  "?direction=after&count=true";
+	public <T> ResponseEntity<T> getOldHoaxes(Integer hoaxId, ParameterizedTypeReference<T> responseType){
+		String path = API_1_0_HOAXES + "/" + hoaxId +"?direction=before&page=0&size=5&sort=id,desc";
 		return testRestTemplate.exchange(path, HttpMethod.GET, null, responseType);
+	}
+
+	public <T> ResponseEntity<T> getOldHoaxesOfUser(Integer hoaxId, String username, ParameterizedTypeReference<T> responseType){
+		String path = "/api/1.0/users/" + username + "/hoaxes/" + hoaxId +"?direction=before&page=0&size=5&sort=id,desc";
+		return testRestTemplate.exchange(path, HttpMethod.GET, null, responseType);
+	}
+	
+	public <T> ResponseEntity<T> getHoaxesOfUser(String username, ParameterizedTypeReference<T> responseType){
+		String path = "/api/1.0/users/" + username + "/hoaxes";
+		return testRestTemplate.exchange(path, HttpMethod.GET, null, responseType);
+	}
+
+	public <T> ResponseEntity<T> getHoaxes(ParameterizedTypeReference<T> responseType){
+		return testRestTemplate.exchange(API_1_0_HOAXES, HttpMethod.GET, null, responseType);
+	}
+	
+	private <T> ResponseEntity<T> postHoax(Hoax hoax, Class<T> responseType) {
+		return testRestTemplate.postForEntity(API_1_0_HOAXES, hoax, responseType);
 	}
 	
 	@AfterEach
